@@ -11,7 +11,7 @@ import {
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
-import { CustomCursor } from '@/components/custom-cursor'
+// import { CustomCursor } from '@/components/custom-cursor'
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -118,7 +118,7 @@ export default function RootLayout({
       <body className="font-sans antialiased bg-[var(--background)] text-[var(--foreground)] overflow-x-hidden">
         <ThemeProvider>
           {children}
-          <CustomCursor />
+          {/* <CustomCursor /> */}
         </ThemeProvider>
         <Analytics />
       </body>
