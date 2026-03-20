@@ -15,7 +15,7 @@ export const THEMES: { name: ThemeName; label: string; accent: string }[] = [
   { name: 'cyber-noir', label: 'Cyber Noir', accent: '#00F5FF' },
   { name: 'solar-flare', label: 'Solar Flare', accent: '#FF6B35' },
   { name: 'aurora', label: 'Aurora', accent: '#00FF87' },
-  { name: 'ghost-light', label: 'Ghost Light', accent: '#E8E3DC' },
+  // { name: 'ghost-light', label: 'Ghost Light', accent: '#E8E3DC' },
 ]
 
 const ThemeContext = createContext<ThemeContextValue>({

@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useState, useCallback } from 'react'
 import { motion, useInView } from 'framer-motion'
 import { portfolioData } from '@/lib/portfolio-data'
 import { useScramble } from '@/hooks/use-scramble'
@@ -8,14 +8,18 @@ import { ExternalLink, Award } from 'lucide-react'
 import useEmblaCarousel from 'embla-carousel-react'
 
 const BADGE_COLORS: Record<string, string> = {
-  'Open Source': '#00F5FF',
+  'Open Source':         '#00F5FF',
   'Industry Simulation': '#FFD166',
-  'Hackathon': '#FF6B35',
-  'DSA': '#00FF87',
-  'Certification': '#C77DFF',
+  'Hackathon':           '#FF6B35',
+  'DSA':                 '#00FF87',
+  'Certification':       '#C77DFF',
 }
 
-function AchievementCard({ achievement, index, inView }: {
+function AchievementCard({
+  achievement,
+  index,
+  inView,
+}: {
   achievement: (typeof portfolioData.achievements)[0]
   index: number
   inView: boolean
@@ -35,12 +39,14 @@ function AchievementCard({ achievement, index, inView }: {
       <div
         className="h-full glass-card p-6 relative overflow-hidden transition-all duration-300"
         style={{
-          borderColor: hovered ? color : 'var(--card-border)',
-          boxShadow: hovered ? `0 0 30px ${color}44, 0 8px 32px rgba(0,0,0,0.4)` : '',
-          transform: hovered ? 'perspective(600px) rotateX(-3deg) translateY(-4px)' : 'none',
+          borderColor:  hovered ? color : 'var(--card-border)',
+          boxShadow:    hovered ? `0 0 30px ${color}44, 0 8px 32px rgba(0,0,0,0.4)` : '',
+          transform:    hovered ? 'perspective(600px) rotateX(-3deg) translateY(-4px)' : 'none',
+          // Prevent card's own hover from interfering with drag
+          userSelect:   'none',
         }}
       >
-        {/* Holographic shimmer overlay */}
+        {/* Holographic shimmer */}
         <div
           className="absolute inset-0 pointer-events-none transition-opacity duration-300"
           style={{
@@ -74,9 +80,9 @@ function AchievementCard({ achievement, index, inView }: {
         <div
           className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
           style={{
-            background: `${color}18`,
-            border: `1px solid ${color}30`,
-            boxShadow: hovered ? `0 0 20px ${color}33` : 'none',
+            background:  `${color}18`,
+            border:      `1px solid ${color}30`,
+            boxShadow:   hovered ? `0 0 20px ${color}33` : 'none',
           }}
         >
           <Award size={22} style={{ color }} />
@@ -85,10 +91,7 @@ function AchievementCard({ achievement, index, inView }: {
         {/* Title */}
         <h3
           className="text-base font-bold mb-1 leading-snug"
-          style={{
-            color: 'var(--foreground)',
-            fontFamily: 'var(--font-space-grotesk)',
-          }}
+          style={{ color: 'var(--foreground)', fontFamily: 'var(--font-space-grotesk)' }}
         >
           {achievement.title}
         </h3>
@@ -115,9 +118,11 @@ function AchievementCard({ achievement, index, inView }: {
             href={achievement.url}
             target="_blank"
             rel="noopener noreferrer"
+            // Stop pointer events from bubbling into drag handler on links
+            onPointerDown={(e) => e.stopPropagation()}
             className="inline-flex items-center gap-1.5 mt-4 text-xs font-medium transition-all"
             style={{
-              color: hovered ? color : 'var(--muted-foreground)',
+              color:      hovered ? color : 'var(--muted-foreground)',
               fontFamily: 'var(--font-jetbrains)',
             }}
           >
@@ -130,15 +135,33 @@ function AchievementCard({ achievement, index, inView }: {
   )
 }
 
-// Need to declare useState for the component
-import { useState } from 'react'
-
 export function AchievementsSection() {
   const { achievements } = portfolioData
-  const ref = useRef<HTMLDivElement>(null)
+  const ref    = useRef<HTMLDivElement>(null)
   const inView = useInView(ref, { once: true, margin: '-80px' })
   const heading = useScramble('ACHIEVEMENTS', inView)
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false, dragFree: true, align: 'start' })
+
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    loop:      false,
+    dragFree:  true,
+    align:     'start',
+    // FIX: containScroll prevents the carousel from over-scrolling past the edges
+    containScroll: 'trimSnaps',
+    // FIX: lower drag threshold so a single-finger swipe / one-finger touchpad
+    // gesture registers immediately — default is 10px which feels sticky
+    watchDrag: (_, evt) => {
+      // Accept any pointer drag (mouse, touch, trackpad)
+      // This is already the default but being explicit avoids Embla
+      // version differences
+      return true
+    },
+  })
+
+  // Track dragging state to swap cursor style
+  const [isDragging, setIsDragging] = useState(false)
+
+  const onPointerDown = useCallback(() => setIsDragging(true), [])
+  const onPointerUp   = useCallback(() => setIsDragging(false), [])
 
   return (
     <section
@@ -179,12 +202,32 @@ export function AchievementsSection() {
           </motion.div>
         </div>
 
-        {/* Embla carousel — bleeds to edges */}
-        <div ref={emblaRef} className="overflow-hidden">
+        {/*
+          FIX: The key changes here are:
+          1. touch-action: pan-y — lets the browser handle vertical scroll but
+             passes horizontal movement to Embla. Without this, the browser
+             intercepts ALL touch/trackpad gestures for its own scrolling.
+          2. cursor: grab / grabbing — visual affordance that the area is draggable
+          3. onPointerDown/Up on the scroll container so cursor updates immediately
+          4. -webkit-overflow-scrolling: touch — smoother momentum on iOS/macOS trackpad
+        *)*/}
+        <div
+          ref={emblaRef}
+          className="overflow-hidden"
+          style={{
+            cursor: isDragging ? 'grabbing' : 'grab',
+            // Allow vertical page scroll but hand horizontal to Embla
+            touchAction: 'pan-y',
+            WebkitOverflowScrolling: 'touch' as any,
+          }}
+          onPointerDown={onPointerDown}
+          onPointerUp={onPointerUp}
+          onPointerLeave={onPointerUp}
+        >
           <div className="flex gap-5 px-6 md:px-12 xl:px-[max(3rem,calc((100vw-1280px)/2+1.5rem))] mt-6">
             {achievements.map((achievement, i) => (
               <AchievementCard
-                key={achievement.title}
+                key={`${achievement.title}-${i}`}
                 achievement={achievement}
                 index={i}
                 inView={inView}

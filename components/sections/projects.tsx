@@ -513,7 +513,7 @@ export function ProjectsSection() {
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
           {projects.map((project, i) => (
             <ProjectCard
-              key={project.name}
+              key={`${project.name}-${i}`}
               project={project}
               delay={i * 0.1}
               inView={inView}

@@ -26,7 +26,7 @@ export const portfolioData: PortfolioData = {
     personal: "When I'm not coding, I'm solving algorithmic challenges on LeetCode, contributing to open source, or exploring new technologies. I'm driven by the challenge of turning complex problems into simple, efficient solutions.",
     stats: [
       { label: 'LeetCode Solved', value: 250, suffix: '+' },
-      { label: 'Production Projects', value: 3, suffix: '+' },
+      { label: 'Production Projects', value: 4, suffix: '+' },
       { label: 'OSS Contributions', value: 1, suffix: '' },
       { label: 'Internship Experience', value: 1, suffix: '+ Years' },
     ],
@@ -148,6 +148,22 @@ export const portfolioData: PortfolioData = {
   // Add new projects here
   projects: [
     {
+      name: 'TraceLearn.ai',
+      description: 'An AI-powered platform that helps developers learn from their bugs — submit code, get instant error analysis, fixes, and personalized learning resources.',
+      longDescription: 'An AI-powered platform that helps developers learn from their bugs — submit code, get instant error analysis, fixes, and personalized learning resources.',
+      technologies: ['Next.js', 'Spring Boot', 'WebRTC', 'WebSockets', 'AWS EC2', 'NGINX'],
+      githubUrl: 'https://github.com/souvikree/TraceLearn.ai',
+      liveUrl: 'https://tracelearnai.vercel.app/',
+      status: 'production',
+      icon: '🔵',
+      features: [
+        'Isolated Docker sandbox for safe code execution across Python, Java, Node.js, Go, and Rust',
+        'LLM pipeline that explains errors, generates fixed code, and recommends learning resources',
+        'Real-time session updates via WebSocket with OAuth2 + JWT authentication',
+        'Personalized learning roadmap tracking concept mastery across sessions',
+      ],
+    },
+    {
       name: 'Clype',
       description: 'Privacy-first real-time communication platform',
       longDescription: 'A comprehensive communication platform featuring real-time video calling, chat, and screen sharing with end-to-end encryption.',
@@ -159,7 +175,6 @@ export const portfolioData: PortfolioData = {
       features: [
         'Real-time video and audio calling with WebRTC',
         'Instant messaging with WebSocket connections',
-        'Screen sharing capabilities',
         'Deployed on AWS EC2 with NGINX reverse proxy',
       ],
     },
@@ -221,6 +236,7 @@ export const portfolioData: PortfolioData = {
       description: 'Completed software engineering virtual experience: Built Spring Boot microservices, implemented JPA for data persistence, and created REST APIs with comprehensive validation.',
       date: '2024',
       badge: 'Industry Simulation',
+      url: 'https://drive.google.com/file/d/1-cJ2N6vI3YYwDTGzgjR-39AzthzYSxd2/view?usp=drive_link',
     },
     {
       title: 'Smart India Hackathon 2023',
@@ -243,6 +259,7 @@ export const portfolioData: PortfolioData = {
       description: 'Completed comprehensive Full Stack Web Development course covering MERN stack, authentication, deployment, and modern development practices.',
       date: '2023',
       badge: 'Certification',
+      url: 'https://drive.google.com/file/d/1b5UKacLcs5wZ0kKj-1Gfvw0GxrtMwtS-/view?usp=drive_link',
     },
   ],
 
@@ -327,23 +344,23 @@ export const portfolioData: PortfolioData = {
         body: 'DM Sans',
       },
     },
-    {
-      name: 'ghost-light',
-      label: 'Ghost Light',
-      colors: {
-        background: '#F5F0E8',
-        foreground: '#0D0D0D',
-        accent: '#1A1A2E',
-        secondary: '#16213E',
-        highlight: '#C9184A',
-        muted: '#E8E3DC',
-        border: 'rgba(26, 26, 46, 0.15)',
-        card: 'rgba(0, 0, 0, 0.02)',
-      },
-      fonts: {
-        heading: 'Playfair Display',
-        body: 'Satoshi',
-      },
-    },
+    // {
+    //   name: 'ghost-light',
+    //   label: 'Ghost Light',
+    //   colors: {
+    //     background: '#F5F0E8',
+    //     foreground: '#0D0D0D',
+    //     accent: '#1A1A2E',
+    //     secondary: '#16213E',
+    //     highlight: '#C9184A',
+    //     muted: '#E8E3DC',
+    //     border: 'rgba(26, 26, 46, 0.15)',
+    //     card: 'rgba(0, 0, 0, 0.02)',
+    //   },
+    //   fonts: {
+    //     heading: 'Playfair Display',
+    //     body: 'Satoshi',
+    //   },
+    // },
   ],
 };
