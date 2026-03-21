@@ -21,7 +21,7 @@ export const portfolioData: PortfolioData = {
 
   // ========== ABOUT SECTION ==========
   about: {
-    intro: "Building production-grade systems that scale. Passionate about distributed systems, real-time communication, and clean architecture.",
+    intro: "I build software that solves real problems. My focus is distributed systems, real-time communication, and architectures built to scale. Every project is a step toward building something that genuinely matters.",
     philosophy: "I believe in writing code that's not just functional, but elegant and maintainable. Every line should serve a purpose, and every system should be built with scalability and user experience in mind.",
     personal: "When I'm not coding, I'm solving algorithmic challenges on LeetCode, contributing to open source, or exploring new technologies. I'm driven by the challenge of turning complex problems into simple, efficient solutions.",
     stats: [
