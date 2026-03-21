@@ -206,7 +206,7 @@ export function AboutSection() {
                     transition={{ duration: 5, repeat: Infinity, ease: 'linear' }}
                   />
                   <div className="relative w-20 h-20 rounded-xl overflow-hidden" style={{ background: 'var(--background)' }}>
-                    <Image src="/images/souvik.png" alt="Souvik Ghosh" width={80} height={80}
+                    <Image src="/images/souvik-nobg.png" alt="Souvik Ghosh" width={80} height={80}
                       className="w-full h-full object-cover object-top" />
                   </div>
                 </div>

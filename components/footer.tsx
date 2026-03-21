@@ -46,7 +46,7 @@ export function Footer() {
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl overflow-hidden border-2"
                 style={{ borderColor: 'var(--accent)', boxShadow: '0 0 20px var(--glow)' }}>
-                <Image src="/images/souvik.png" alt="Souvik Ghosh" width={40} height={40}
+                <Image src="/images/souvik-nobg.png" alt="Souvik Ghosh" width={40} height={40}
                   className="w-full h-full object-cover object-top" />
               </div>
               <div>

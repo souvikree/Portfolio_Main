@@ -217,7 +217,7 @@ export function LoadingScreen() {
               style={{ background: '#0a0a12' }}
             >
               <Image
-                src="/images/souvik.png"
+                src="/images/souvik-nobg.png"
                 alt="Souvik Ghosh"
                 width={112} height={112}
                 className="w-full h-full object-cover object-top"
