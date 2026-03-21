@@ -3,6 +3,8 @@ import { Metadata } from 'next'
 import { blogPosts } from '@/lib/blog-data'
 import { BlogPostClient } from '@/components/blog/blog-post-client'
 
+const BASE_URL = 'https://souviksportfolio.vercel.app'
+
 type Params = { slug: string }
 
 export async function generateStaticParams(): Promise<Params[]> {
@@ -13,13 +15,32 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   const { slug } = await params
   const post = blogPosts.find((p) => p.slug === slug)
   if (!post) return { title: 'Post Not Found' }
+
+  const postUrl = `${BASE_URL}/blog/${post.slug}`
+
   return {
-    title: `${post.title} — Souvik Ghosh`,
+    title: post.title,                      // uses layout template → "Post Title — Souvik Ghosh"
     description: post.excerpt,
+    keywords: post.tags,
+    alternates: { canonical: postUrl },
+
     openGraph: {
-      title: post.title,
-      description: post.excerpt,
       type: 'article',
+      url: postUrl,
+      siteName: 'Souvik Ghosh',
+      title: `${post.title} — Souvik Ghosh`,
+      description: post.excerpt,
+      publishedTime: new Date(post.date).toISOString(),
+      authors: [`${BASE_URL}`],
+      tags: post.tags,
+      // Next.js will auto-use the root /opengraph-image.tsx since
+      // there's no per-post opengraph-image — good enough for blog posts
+    },
+
+    twitter: {
+      card: 'summary_large_image',
+      title: `${post.title} — Souvik Ghosh`,
+      description: post.excerpt,
     },
   }
 }
