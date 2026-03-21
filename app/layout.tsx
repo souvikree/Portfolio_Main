@@ -71,8 +71,8 @@ export const metadata: Metadata = {
   // ── Twitter / X ─────────────────────────────────────────────────────────────
   twitter: {
     card: 'summary_large_image',
-    site: '@souvikree',     // update to your Twitter handle if you have one, or remove
-    creator: '@souvikree',
+    site: '@reek_me',     // update to your Twitter handle if you have one, or remove
+    creator: '@reek_me',
     title: 'Souvik Ghosh — Software Engineer',
     description: 'Building production-grade systems that scale. Distributed systems, real-time communication, and clean architecture.',
     // Next.js auto-discovers /opengraph-image.tsx for twitter:image too
