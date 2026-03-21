@@ -25,10 +25,10 @@ export const portfolioData: PortfolioData = {
     philosophy: "I believe in writing code that's not just functional, but elegant and maintainable. Every line should serve a purpose, and every system should be built with scalability and user experience in mind.",
     personal: "When I'm not coding, I'm solving algorithmic challenges on LeetCode, contributing to open source, or exploring new technologies. I'm driven by the challenge of turning complex problems into simple, efficient solutions.",
     stats: [
-      { label: 'LeetCode Solved', value: 250, suffix: '+' },
+      // { label: 'LeetCode Solved', value: 250, suffix: '+' },
       { label: 'Production Projects', value: 4, suffix: '+' },
       { label: 'OSS Contributions', value: 1, suffix: '' },
-      { label: 'Internship Experience', value: 1, suffix: '+ Years'},
+      // { label: 'Internship Experience', value: 1, suffix: '+ Years'},
     ],
   },
 
