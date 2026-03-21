@@ -184,7 +184,7 @@ export function HeroSection() {
                     whileHover={{ background: 'rgba(0,245,255,0.07)', boxShadow: '0 0 20px var(--glow)' }}
                     whileTap={{ scale: 0.97 }}
                   >
-                    <Eye size={13} /> Preview
+                    <Eye size={13} /> Preview CV
                   </motion.button>
 
                   {/* Download button */}
