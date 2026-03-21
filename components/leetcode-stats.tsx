@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Code2, Trophy, TrendingUp, ExternalLink } from 'lucide-react'
+import { Code2, Trophy, ExternalLink } from 'lucide-react'
 
 interface LCStats {
   total:    number
@@ -58,8 +58,8 @@ export function LeetCodeStats() {
 
   if (!loaded) {
     return (
-      <div className="rounded-2xl p-5 animate-pulse"
-        style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--card-border)', height: 180 }} />
+      <div className="rounded-2xl animate-pulse"
+        style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--card-border)', height: 170 }} />
     )
   }
 
@@ -82,19 +82,21 @@ export function LeetCodeStats() {
         <div className="absolute inset-0 pointer-events-none"
           style={{ background: 'radial-gradient(ellipse 60% 40% at 50% 0%, rgba(255,209,102,0.04), transparent 60%)' }} />
 
-        <div className="p-5 relative">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-4">
+        <div className="p-4 sm:p-5 relative">
+          {/* ── Header ── */}
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                 style={{ background: 'rgba(255,165,0,0.1)', border: '1px solid rgba(255,165,0,0.25)' }}>
-                <Code2 size={15} style={{ color: '#FFA116' }} />
+                <Code2 size={13} style={{ color: '#FFA116' }} />
               </div>
               <div>
-                <p className="text-xs font-black" style={{ color: 'var(--foreground)', fontFamily: 'var(--font-space-grotesk)' }}>
+                <p className="text-xs font-black leading-tight"
+                  style={{ color: 'var(--foreground)', fontFamily: 'var(--font-space-grotesk)' }}>
                   LeetCode
                 </p>
-                <p className="text-[10px]" style={{ color: 'var(--muted-foreground)', fontFamily: 'var(--font-jetbrains)' }}>
+                <p className="text-[10px]"
+                  style={{ color: 'var(--muted-foreground)', fontFamily: 'var(--font-jetbrains)' }}>
                   @{stats.username}
                 </p>
               </div>
@@ -103,60 +105,61 @@ export function LeetCodeStats() {
               href={`https://leetcode.com/u/${stats.username}/`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 text-[10px] font-semibold transition-all px-2 py-1 rounded-lg"
+              className="flex items-center gap-1 text-[10px] font-semibold transition-all px-2 py-1 rounded-lg flex-shrink-0"
               style={{ color: '#FFA116', fontFamily: 'var(--font-jetbrains)', background: 'rgba(255,161,22,0.08)', border: '1px solid rgba(255,161,22,0.2)' }}
-              onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 0 10px rgba(255,161,22,0.3)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none' }}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 0 10px rgba(255,161,22,0.3)' }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none' }}
             >
               Profile <ExternalLink size={9} />
             </a>
           </div>
 
-          {/* Total solved — big number */}
-          <div className="flex items-end gap-3 mb-4">
+          {/* ── Total + Rank row ── */}
+          <div className="flex items-end justify-between mb-3 sm:mb-4">
             <div>
-              <div className="text-4xl font-black leading-none mb-0.5"
+              <div className="text-3xl sm:text-4xl font-black leading-none mb-0.5"
                 style={{ color: '#FFA116', fontFamily: 'var(--font-space-grotesk)' }}>
                 <CountUp value={stats.total} />
               </div>
-              <p className="text-[10px] font-bold uppercase tracking-widest"
+              <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest"
                 style={{ color: 'var(--muted-foreground)', fontFamily: 'var(--font-jetbrains)' }}>
                 Problems Solved
               </p>
             </div>
 
-            {/* Ranking */}
             {stats.ranking > 0 && (
-              <div className="ml-auto flex flex-col items-end">
+              <div className="flex flex-col items-end">
                 <div className="flex items-center gap-1">
-                  <Trophy size={11} style={{ color: '#FFD166' }} />
-                  <span className="text-sm font-black" style={{ color: '#FFD166', fontFamily: 'var(--font-space-grotesk)' }}>
+                  <Trophy size={10} style={{ color: '#FFD166' }} />
+                  <span className="text-sm font-black"
+                    style={{ color: '#FFD166', fontFamily: 'var(--font-space-grotesk)' }}>
                     #{fmt(stats.ranking)}
                   </span>
                 </div>
-                <p className="text-[9px]" style={{ color: 'var(--muted-foreground)', fontFamily: 'var(--font-jetbrains)' }}>
+                <p className="text-[9px]"
+                  style={{ color: 'var(--muted-foreground)', fontFamily: 'var(--font-jetbrains)' }}>
                   Global Rank
                 </p>
               </div>
             )}
           </div>
 
-          {/* Difficulty breakdown */}
-          <div className="grid grid-cols-3 gap-2">
+          {/* ── Difficulty breakdown ── */}
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
             {DIFF_CONFIG.map(({ key, label, color, bg, border }, i) => (
               <motion.div
                 key={key}
-                className="flex flex-col items-center gap-1 py-2.5 rounded-xl"
+                className="flex flex-col items-center gap-1 py-2 rounded-xl"
                 style={{ background: bg, border: `1px solid ${border}` }}
                 initial={{ opacity: 0, scale: 0.85 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.3 + i * 0.1 }}
               >
-                <span className="text-lg font-black leading-none"
+                <span className="text-base sm:text-lg font-black leading-none"
                   style={{ color, fontFamily: 'var(--font-space-grotesk)' }}>
                   <CountUp value={stats[key]} duration={1200 + i * 100} />
                 </span>
-                <span className="text-[9px] font-bold"
+                <span className="text-[8px] sm:text-[9px] font-bold"
                   style={{ color, fontFamily: 'var(--font-jetbrains)', opacity: 0.8 }}>
                   {label}
                 </span>
@@ -164,9 +167,9 @@ export function LeetCodeStats() {
             ))}
           </div>
 
-          {/* Difficulty bar */}
+          {/* ── Difficulty bar ── */}
           {stats.total > 0 && (
-            <div className="mt-3 h-1.5 rounded-full overflow-hidden flex" style={{ background: 'var(--muted)' }}>
+            <div className="mt-2.5 sm:mt-3 h-1.5 rounded-full overflow-hidden flex" style={{ background: 'var(--muted)' }}>
               <motion.div
                 style={{ background: '#00FF87', height: '100%' }}
                 initial={{ width: 0 }}

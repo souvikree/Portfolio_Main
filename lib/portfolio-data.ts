@@ -41,7 +41,6 @@ export const portfolioData: PortfolioData = {
   ],
 
   // ========== SKILLS ==========
-  // Add new skills here
   skills: [
     {
       name: 'Languages',
@@ -109,7 +108,6 @@ export const portfolioData: PortfolioData = {
   ],
 
   // ========== EXPERIENCE ==========
-  // Add new job experiences here
   experience: [
     {
       company: 'Ardent Computech Pvt. Ltd.',

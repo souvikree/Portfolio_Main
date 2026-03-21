@@ -50,7 +50,7 @@ function getOpacity(count: number, max: number): number {
 // ── Month labels ──────────────────────────────────────────────────────────────
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
-function getMonthLabels(weeks: Week[]): { label: string; index: number }[] {
+function getMonthLabels(weeks: Week[], cellStep: number): { label: string; index: number }[] {
   const labels: { label: string; index: number }[] = []
   let lastMonth = -1
   weeks.forEach((week, i) => {
@@ -62,7 +62,21 @@ function getMonthLabels(weeks: Week[]): { label: string; index: number }[] {
       lastMonth = month
     }
   })
-  return labels
+  // Filter out labels that are too close together (< 3 weeks apart)
+  return labels.filter((l, i, arr) => i === 0 || l.index - arr[i - 1].index >= 3)
+}
+
+// ── Responsive hook ───────────────────────────────────────────────────────────
+function useContainerWidth(ref: React.RefObject<HTMLDivElement | null>) {
+  const [width, setWidth] = useState(600) // fallback until ResizeObserver fires
+  useEffect(() => {
+    if (!ref.current) return
+    const ro = new ResizeObserver(entries => setWidth(entries[0].contentRect.width))
+    ro.observe(ref.current)
+    setWidth(ref.current.offsetWidth)
+    return () => ro.disconnect()
+  }, [ref])
+  return width
 }
 
 // ── Tooltip ───────────────────────────────────────────────────────────────────
@@ -80,17 +94,18 @@ export function GitHubActivity() {
   const [error, setError]     = useState(false)
   const [tooltip, setTooltip] = useState<TooltipState | null>(null)
   const [hoveredDay, setHoveredDay] = useState<string | null>(null)
-  const ref    = useRef<HTMLDivElement>(null)
-  const inView = useInView(ref, { once: true, margin: '-60px' })
+
+  const wrapperRef = useRef<HTMLDivElement>(null)
+  const graphRef   = useRef<HTMLDivElement>(null)
+  const inView     = useInView(wrapperRef, { once: true, margin: '-60px' })
   const [revealed, setRevealed] = useState(false)
+
+  const containerWidth = useContainerWidth(graphRef)
 
   useEffect(() => {
     fetch('/api/github')
       .then(r => r.json())
-      .then(d => {
-        if (d.error) throw new Error(d.error)
-        setData(d)
-      })
+      .then(d => { if (d.error) throw new Error(d.error); setData(d) })
       .catch(() => setError(true))
       .finally(() => setLoading(false))
   }, [])
@@ -99,22 +114,57 @@ export function GitHubActivity() {
     if (inView && data) setTimeout(() => setRevealed(true), 150)
   }, [inView, data])
 
-  // Compute max for colour scale
-  const maxCount = data
+  // ── Compute layout from container width ─────────────────────────────────────
+  // Day label col = 24px, gap after = 4px, rest = weeks
+  const DAY_COL   = 24
+  const DAY_GAP   = 4
+  const availableWidth = containerWidth - DAY_COL - DAY_GAP
+
+  // Decide how many weeks to show based on available width
+  // We want cells to be at least 10px with 2px gap
+  const MIN_CELL  = 10
+  const MAX_CELL  = 14
+  const totalWeeks = data?.weeks.length ?? 53
+
+  // Fit as many weeks as possible at max cell size; if all fit, use max
+  // Otherwise shrink cell to fit all, but floor at MIN_CELL and slice weeks
+  let cellSize: number
+  let weeksToShow: number
+
+  if (availableWidth <= 10) {
+    cellSize    = 11
+    weeksToShow = 26
+  } else {
+    // At MAX_CELL + 2 gap per week, how many weeks fit?
+    const fitAtMax = Math.floor(availableWidth / (MAX_CELL + 2))
+    if (fitAtMax >= totalWeeks) {
+      // All weeks fit — use cell size that fills the width
+      cellSize    = Math.min(MAX_CELL, Math.floor(availableWidth / totalWeeks) - 2)
+      weeksToShow = totalWeeks
+    } else {
+      // Can't fit all — try shrinking
+      const fitAtMin = Math.floor(availableWidth / (MIN_CELL + 2))
+      weeksToShow = Math.min(totalWeeks, Math.max(fitAtMin, 10))
+      cellSize    = Math.max(MIN_CELL, Math.floor(availableWidth / weeksToShow) - 2)
+    }
+  }
+
+  const cellGap  = 2
+  const cellStep = cellSize + cellGap
+
+  const visibleWeeks  = data ? data.weeks.slice(-weeksToShow) : []
+  const maxCount      = data
     ? Math.max(...data.weeks.flatMap(w => w.contributionDays.map(d => d.contributionCount)), 1)
     : 1
-
-  const monthLabels = data ? getMonthLabels(data.weeks) : []
-
-  // Day-of-week labels
-  const DAY_LABELS = ['Mon', '', 'Wed', '', 'Fri', '', '']
+  const monthLabels   = data ? getMonthLabels(visibleWeeks, cellStep) : []
+  const DAY_LABELS    = ['Mon', '', 'Wed', '', 'Fri', '', '']
+  const isMobile      = containerWidth < 480
 
   return (
-    <div ref={ref}>
-      {/* CSS vars for the colour scale */}
+    <div ref={wrapperRef}>
       <style>{`
         :root {
-          --gh-empty: rgba(255,255,255,0.04);
+          --gh-empty: rgba(255,255,255,0.05);
           --gh-l1: #0e4429;
           --gh-l2: #006d32;
           --gh-l3: #26a641;
@@ -129,185 +179,205 @@ export function GitHubActivity() {
         className="rounded-xl overflow-hidden"
         style={{ border: '1px solid var(--card-border)', background: 'rgba(255,255,255,0.02)' }}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4"
+        {/* ── Header ── */}
+        <div className="flex items-center justify-between px-4 py-3"
           style={{ borderBottom: '1px solid var(--card-border)', background: 'rgba(255,255,255,0.015)' }}>
-          <div className="flex items-center gap-2.5">
-            {/* GitHub icon SVG */}
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4" style={{ color: 'var(--accent)' }}>
+          <div className="flex items-center gap-2">
+            <svg viewBox="0 0 24 24" fill="currentColor" className="w-[14px] h-[14px] flex-shrink-0" style={{ color: 'var(--accent)' }}>
               <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
             </svg>
-            <span className="text-xs font-semibold tracking-wider uppercase"
+            <span className="text-[11px] font-semibold tracking-wider uppercase"
               style={{ color: 'var(--foreground)', fontFamily: 'var(--font-jetbrains)', opacity: 0.7 }}>
               GitHub Activity
             </span>
           </div>
           {data && (
-            <span className="text-xs font-bold tabular-nums"
+            <span className="text-[10px] font-bold tabular-nums"
               style={{ color: 'var(--accent)', fontFamily: 'var(--font-jetbrains)' }}>
-              {data.totalContributions.toLocaleString()} contributions this year
+              {isMobile
+                ? `${data.totalContributions.toLocaleString()} this year`
+                : `${data.totalContributions.toLocaleString()} contributions this year`}
             </span>
           )}
         </div>
 
-        <div className="p-5 flex flex-col gap-5">
+        <div className="p-4 flex flex-col gap-4">
 
-          {/* ── Graph ── */}
+          {/* ── Loading ── */}
           {loading && (
             <div className="flex items-center justify-center py-10">
-              <motion.div className="flex gap-1.5"
-                animate={{ opacity: [0.4, 1, 0.4] }}
-                transition={{ duration: 1.4, repeat: Infinity }}>
+              <div className="flex gap-1.5">
                 {[0,1,2,3].map(i => (
                   <motion.div key={i} className="w-2 h-2 rounded-full"
                     style={{ background: 'var(--accent)' }}
                     animate={{ y: [0, -6, 0] }}
                     transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.12 }} />
                 ))}
-              </motion.div>
+              </div>
             </div>
           )}
 
+          {/* ── Error ── */}
           {error && (
             <div className="py-8 text-center text-xs" style={{ color: 'var(--muted-foreground)', fontFamily: 'var(--font-jetbrains)' }}>
               // could not reach GitHub API
             </div>
           )}
 
+          {/* ── Graph ── */}
           {data && (
-            <div className="relative">
-              {/* Month labels */}
-              <div className="flex mb-2 pl-7 overflow-hidden">
-                {monthLabels.map(({ label, index }) => (
-                  <div key={label + index}
-                    className="absolute text-[9px]"
-                    style={{
-                      left: `${28 + index * 13}px`,
-                      color: 'var(--muted-foreground)',
-                      fontFamily: 'var(--font-jetbrains)',
-                      opacity: 0.55,
-                    }}>
-                    {label}
+            <div className="relative" ref={graphRef}>
+              <>
+                  {/* Month labels */}
+                  <div className="relative h-4 mb-1" style={{ marginLeft: DAY_COL + DAY_GAP }}>
+                    {monthLabels.map(({ label, index }) => (
+                      <div key={label + index}
+                        className="absolute text-[9px]"
+                        style={{
+                          left: `${index * cellStep}px`,
+                          color: 'var(--muted-foreground)',
+                          fontFamily: 'var(--font-jetbrains)',
+                          opacity: 0.55,
+                          whiteSpace: 'nowrap',
+                        }}>
+                        {label}
+                      </div>
+                    ))}
                   </div>
-                ))}
-                <div className="h-4" />
-              </div>
 
-              {/* Grid */}
-              <div className="flex gap-0.5 mt-5 relative">
-                {/* Day-of-week labels */}
-                <div className="flex flex-col gap-0.5 mr-1.5 flex-shrink-0">
-                  {DAY_LABELS.map((d, i) => (
-                    <div key={i} className="h-[11px] flex items-center">
-                      <span className="text-[9px]" style={{ color: 'var(--muted-foreground)', fontFamily: 'var(--font-jetbrains)', opacity: 0.5 }}>
-                        {d}
+                  {/* Grid */}
+                  <div style={{ display: 'flex', gap: 0 }}>
+                    {/* Day-of-week labels */}
+                    <div style={{ width: DAY_COL, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: cellGap }}>
+                      {DAY_LABELS.map((d, i) => (
+                        <div key={i} style={{ height: cellSize, display: 'flex', alignItems: 'center' }}>
+                          <span style={{
+                            fontSize: 8,
+                            color: 'var(--muted-foreground)',
+                            fontFamily: 'var(--font-jetbrains)',
+                            opacity: 0.5,
+                          }}>
+                            {d}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Weeks */}
+                    <div style={{ display: 'flex', gap: cellGap, marginLeft: DAY_GAP }}>
+                      {visibleWeeks.map((week, wi) => (
+                        <div key={wi} style={{ display: 'flex', flexDirection: 'column', gap: cellGap }}>
+                          {week.contributionDays.map((day, di) => {
+                            const color   = getColor(day.contributionCount, maxCount)
+                            const opacity = getOpacity(day.contributionCount, maxCount)
+                            const isHover = hoveredDay === day.date
+                            const delay   = revealed ? (wi * 7 + di) * 4 : 9999
+
+                            return (
+                              <motion.div
+                                key={day.date}
+                                style={{
+                                  width: cellSize,
+                                  height: cellSize,
+                                  borderRadius: Math.max(1, Math.floor(cellSize / 5)),
+                                  background: color,
+                                  flexShrink: 0,
+                                  cursor: 'pointer',
+                                  outline: isHover ? '1.5px solid var(--accent)' : 'none',
+                                  outlineOffset: '1px',
+                                  transition: 'outline 0.1s',
+                                }}
+                                initial={{ opacity: 0, scale: 0.4 }}
+                                animate={revealed ? { opacity, scale: 1 } : {}}
+                                transition={{ duration: 0.22, delay: Math.min(delay / 1000, 1.2) }}
+                                onMouseEnter={e => {
+                                  setHoveredDay(day.date)
+                                  const rect   = (e.target as HTMLElement).getBoundingClientRect()
+                                  const parent = wrapperRef.current?.getBoundingClientRect()
+                                  setTooltip({ x: rect.left - (parent?.left ?? 0) + cellSize / 2, y: rect.top - (parent?.top ?? 0) - 42, day, visible: true })
+                                }}
+                                onMouseLeave={() => { setHoveredDay(null); setTooltip(null) }}
+                                onTouchStart={e => {
+                                  e.preventDefault()
+                                  setHoveredDay(day.date)
+                                  const rect   = (e.target as HTMLElement).getBoundingClientRect()
+                                  const parent = wrapperRef.current?.getBoundingClientRect()
+                                  setTooltip({ x: rect.left - (parent?.left ?? 0) + cellSize / 2, y: rect.top - (parent?.top ?? 0) - 48, day, visible: true })
+                                  setTimeout(() => { setHoveredDay(null); setTooltip(null) }, 1500)
+                                }}
+                              />
+                            )
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Tooltip */}
+                  {tooltip?.visible && (
+                    <div
+                      className="absolute pointer-events-none z-50 px-2.5 py-1.5 rounded-lg text-[10px] whitespace-nowrap"
+                      style={{
+                        left: Math.max(50, Math.min(tooltip.x, containerWidth - 80)),
+                        top: tooltip.y,
+                        background: 'rgba(0,0,0,0.92)',
+                        border: '1px solid var(--card-border)',
+                        color: 'var(--foreground)',
+                        fontFamily: 'var(--font-jetbrains)',
+                        backdropFilter: 'blur(8px)',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+                        transform: 'translateX(-50%)',
+                      }}
+                    >
+                      <span style={{ color: 'var(--accent)', fontWeight: 700 }}>
+                        {tooltip.day.contributionCount} contribution{tooltip.day.contributionCount !== 1 ? 's' : ''}
+                      </span>
+                      <span style={{ color: 'var(--muted-foreground)', marginLeft: 4 }}>
+                        {new Date(tooltip.day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </span>
                     </div>
-                  ))}
-                </div>
+                  )}
 
-                {/* Weeks */}
-                {data.weeks.map((week, wi) => (
-                  <div key={wi} className="flex flex-col gap-0.5">
-                    {week.contributionDays.map((day, di) => {
-                      const color   = getColor(day.contributionCount, maxCount)
-                      const opacity = getOpacity(day.contributionCount, maxCount)
-                      const isHover = hoveredDay === day.date
-                      const delay   = revealed ? (wi * 7 + di) * 4 : 9999
-
-                      return (
-                        <motion.div
-                          key={day.date}
-                          className="w-[11px] h-[11px] rounded-[2px] cursor-pointer relative"
-                          style={{
-                            background: color,
-                            opacity: isHover ? 1 : opacity,
-                            outline: isHover ? '1px solid var(--accent)' : 'none',
-                            outlineOffset: '1px',
-                            transition: 'outline 0.15s, transform 0.15s',
-                          }}
-                          initial={{ opacity: 0, scale: 0.5 }}
-                          animate={revealed ? { opacity, scale: 1 } : {}}
-                          transition={{ duration: 0.25, delay: Math.min(delay / 1000, 1.2) }}
-                          onMouseEnter={e => {
-                            setHoveredDay(day.date)
-                            const rect = (e.target as HTMLElement).getBoundingClientRect()
-                            const parent = ref.current?.getBoundingClientRect()
-                            setTooltip({
-                              x: rect.left - (parent?.left ?? 0) + 6,
-                              y: rect.top  - (parent?.top ?? 0) - 36,
-                              day,
-                              visible: true,
-                            })
-                          }}
-                          onMouseLeave={() => {
-                            setHoveredDay(null)
-                            setTooltip(null)
-                          }}
-                        />
-                      )
-                    })}
+                  {/* Legend + note */}
+                  <div className="flex items-center justify-between mt-3">
+                    {isMobile ? (
+                      <span className="text-[8px]" style={{ color: 'var(--muted-foreground)', fontFamily: 'var(--font-jetbrains)', opacity: 0.4 }}>
+                        last {weeksToShow} weeks
+                      </span>
+                    ) : <span />}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9px]" style={{ color: 'var(--muted-foreground)', fontFamily: 'var(--font-jetbrains)', opacity: 0.5 }}>Less</span>
+                      {['var(--gh-empty)','var(--gh-l1)','var(--gh-l2)','var(--gh-l3)','var(--gh-l4)'].map((c, i) => (
+                        <div key={i} style={{ width: cellSize, height: cellSize, borderRadius: 2, background: c, flexShrink: 0 }} />
+                      ))}
+                      <span className="text-[9px]" style={{ color: 'var(--muted-foreground)', fontFamily: 'var(--font-jetbrains)', opacity: 0.5 }}>More</span>
+                    </div>
                   </div>
-                ))}
-              </div>
-
-              {/* Tooltip */}
-              {tooltip && tooltip.visible && (
-                <div
-                  className="absolute pointer-events-none z-50 px-2.5 py-1.5 rounded-lg text-[10px] whitespace-nowrap"
-                  style={{
-                    left: tooltip.x,
-                    top: tooltip.y,
-                    background: 'rgba(0,0,0,0.85)',
-                    border: '1px solid var(--card-border)',
-                    color: 'var(--foreground)',
-                    fontFamily: 'var(--font-jetbrains)',
-                    backdropFilter: 'blur(8px)',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
-                    transform: 'translateX(-50%)',
-                  }}
-                >
-                  <span style={{ color: 'var(--accent)', fontWeight: 700 }}>
-                    {tooltip.day.contributionCount} contribution{tooltip.day.contributionCount !== 1 ? 's' : ''}
-                  </span>
-                  <span style={{ color: 'var(--muted-foreground)' }}>
-                    {' on '}{new Date(tooltip.day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </span>
-                </div>
-              )}
-
-              {/* Legend */}
-              <div className="flex items-center gap-1.5 mt-3 justify-end">
-                <span className="text-[9px]" style={{ color: 'var(--muted-foreground)', fontFamily: 'var(--font-jetbrains)', opacity: 0.5 }}>Less</span>
-                {['var(--gh-empty)','var(--gh-l1)','var(--gh-l2)','var(--gh-l3)','var(--gh-l4)'].map((c, i) => (
-                  <div key={i} className="w-[11px] h-[11px] rounded-[2px]" style={{ background: c }} />
-                ))}
-                <span className="text-[9px]" style={{ color: 'var(--muted-foreground)', fontFamily: 'var(--font-jetbrains)', opacity: 0.5 }}>More</span>
-              </div>
+              </>
             </div>
           )}
 
           {/* ── Quick stats ── */}
           {data && (
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-2">
               {[
                 { icon: Users,          value: data.followers,    label: 'Followers' },
                 { icon: GitPullRequest, value: data.pullRequests, label: 'Merged PRs' },
-                { icon: Star,           value: data.topRepos.reduce((a,r) => a + r.stargazerCount, 0), label: 'Total Stars' },
+                { icon: Star,           value: data.topRepos.reduce((a, r) => a + r.stargazerCount, 0), label: 'Total Stars' },
               ].map(({ icon: Icon, value, label }, i) => (
                 <motion.div key={label}
-                  className="flex flex-col items-center gap-1 py-3 rounded-lg"
+                  className="flex flex-col items-center gap-1 py-2.5 rounded-lg"
                   style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--card-border)' }}
                   initial={{ opacity: 0, y: 10 }}
                   animate={inView ? { opacity: 1, y: 0 } : {}}
                   transition={{ delay: 0.4 + i * 0.1 }}
                   whileHover={{ borderColor: 'var(--accent)', boxShadow: '0 0 12px var(--glow)' }}>
-                  <Icon size={12} style={{ color: 'var(--accent)' }} />
-                  <span className="text-lg font-black tabular-nums"
+                  <Icon size={11} style={{ color: 'var(--accent)' }} />
+                  <span className="text-base font-black tabular-nums"
                     style={{ color: 'var(--foreground)', fontFamily: 'var(--font-space-grotesk)' }}>
                     {value}
                   </span>
-                  <span className="text-[9px] uppercase tracking-wider"
+                  <span className="text-[8px] uppercase tracking-wider text-center leading-tight px-1"
                     style={{ color: 'var(--muted-foreground)', fontFamily: 'var(--font-jetbrains)' }}>
                     {label}
                   </span>
@@ -316,8 +386,8 @@ export function GitHubActivity() {
             </div>
           )}
 
-          {/* ── Top repos ──
-          {data && data.topRepos.length > 0 && (
+          {/* ── Top repos ── */}
+          {/* {data && data.topRepos.length > 0 && (
             <div className="flex flex-col gap-2">
               <p className="text-[9px] uppercase tracking-[0.25em] mb-1"
                 style={{ color: 'var(--accent)', fontFamily: 'var(--font-jetbrains)', opacity: 0.6 }}>
