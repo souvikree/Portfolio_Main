@@ -61,7 +61,7 @@ export function Footer() {
             </div>
 
             <p className="text-sm leading-relaxed" style={{ color: 'var(--muted-foreground)' }}>
-              Building production-grade systems that scale. Passionate about distributed systems and real-time communication.
+              I build software that solves real problems. My focus is distributed systems, real-time communication, and architectures built to scale. Every project is a step toward building something that genuinely matters.
             </p>
 
             {/* Social icons */}

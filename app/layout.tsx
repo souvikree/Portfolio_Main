@@ -71,7 +71,7 @@ export const metadata: Metadata = {
     url:         BASE_URL,
     siteName:    'Souvik Ghosh',
     title:       'Souvik Ghosh',
-    description: 'Building production-grade systems that scale. Distributed systems, real-time communication & clean architecture.',
+    description: 'I build software that solves real problems. My focus is distributed systems, real-time communication, and architectures built to scale. Every project is a step toward building something that genuinely matters.',
     locale:      'en_US',
     images:      [OG_IMAGE],  // ← explicit, not relying on auto-discovery
   },
@@ -82,7 +82,7 @@ export const metadata: Metadata = {
     site:        '@reek_me',
     creator:     '@reek_me',
     title:       'Souvik Ghosh',
-    description: 'Building production-grade systems that scale. Distributed systems, real-time communication & clean architecture.',
+    description: 'I build software that solves real problems. My focus is distributed systems, real-time communication, and architectures built to scale. Every project is a step toward building something that genuinely matters.',
     images:      [`${BASE_URL}/opengraph-image`],  // ← explicit
   },
 

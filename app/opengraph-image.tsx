@@ -132,7 +132,7 @@ export default async function OGImage() {
               color: 'rgba(255,255,255,0.48)', fontSize: 17, lineHeight: 1.55,
               maxWidth: 500, margin: 0, marginTop: 2,
             }}>
-              Building production-grade systems that scale. Distributed systems, real-time communication &amp; clean architecture.
+              I build software that solves real problems. My focus is distributed systems, real-time communication, and architectures built to scale. Every project is a step toward building something that genuinely matters.
             </p>
 
             {/* Tech tags */}

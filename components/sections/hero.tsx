@@ -150,8 +150,9 @@ export function HeroSection() {
               {/* Bio */}
               <motion.p variants={FADE_UP} className="text-sm sm:text-base leading-relaxed max-w-lg"
                 style={{ color: 'var(--muted-foreground)' }}>
-                Building production-grade systems that scale. Passionate about distributed
-                systems, real-time communication, and clean architecture.
+                I build software that solves real problems. 
+                My focus is distributed systems, real-time communication, and architectures built to scale. 
+                Every project is a step toward building something that genuinely matters.
               </motion.p>
 
               {/* CTAs */}
