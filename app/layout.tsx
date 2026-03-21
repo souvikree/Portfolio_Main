@@ -28,7 +28,7 @@ const OG_IMAGE = {
   url: `${BASE_URL}/opengraph-image`,   // Next.js serves opengraph-image.tsx at this path
   width: 1200,
   height: 630,
-  alt: 'Souvik Ghosh — Software Engineer Portfolio',
+  alt: 'Souvik Ghosh',
   type: 'image/png' as const,
 }
 
