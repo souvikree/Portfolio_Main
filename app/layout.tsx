@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   // ── Base ────────────────────────────────────────────────────────────────────
   metadataBase: new URL(BASE_URL),
   title: {
-    default: 'Souvik Ghosh — Software Engineer',
+    default: 'Souvik Ghosh',
     template: '%s — Souvik Ghosh',
   },
   description:
@@ -70,7 +70,7 @@ export const metadata: Metadata = {
     type:        'website',
     url:         BASE_URL,
     siteName:    'Souvik Ghosh',
-    title:       'Souvik Ghosh — Software Engineer',
+    title:       'Souvik Ghosh',
     description: 'Building production-grade systems that scale. Distributed systems, real-time communication & clean architecture.',
     locale:      'en_US',
     images:      [OG_IMAGE],  // ← explicit, not relying on auto-discovery
@@ -81,7 +81,7 @@ export const metadata: Metadata = {
     card:        'summary_large_image',
     site:        '@reek_me',
     creator:     '@reek_me',
-    title:       'Souvik Ghosh — Software Engineer',
+    title:       'Souvik Ghosh',
     description: 'Building production-grade systems that scale. Distributed systems, real-time communication & clean architecture.',
     images:      [`${BASE_URL}/opengraph-image`],  // ← explicit
   },
