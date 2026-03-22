@@ -149,7 +149,7 @@ export const portfolioData: PortfolioData = {
       name: 'TraceLearn.ai',
       description: 'An AI-powered platform that helps developers learn from their bugs — submit code, get instant error analysis, fixes, and personalized learning resources.',
       longDescription: 'An AI-powered platform that helps developers learn from their bugs — submit code, get instant error analysis, fixes, and personalized learning resources.',
-      technologies: ['Next.js', 'Spring Boot', 'WebRTC', 'WebSockets', 'AWS EC2', 'NGINX'],
+      technologies: ['Next.js', 'Spring Boot', 'WebSockets', 'Groq LLM', 'AWS EC2', 'NGINX', 'Docker'],
       githubUrl: 'https://github.com/souvikree/TraceLearn.ai',
       liveUrl: 'https://tracelearnai.vercel.app/',
       status: 'production',

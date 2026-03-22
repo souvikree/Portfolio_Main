@@ -1,25 +1,109 @@
 'use client'
 
-import { useRef, useState, useCallback } from 'react'
-import { motion, useInView } from 'framer-motion'
+import { useRef, useState, useCallback, useEffect } from 'react'
+import { motion, useInView, AnimatePresence } from 'framer-motion'
 import { portfolioData } from '@/lib/portfolio-data'
 import { useScramble } from '@/hooks/use-scramble'
-import { Code2, Trophy, Zap, Star, BookOpen, ArrowRight } from 'lucide-react'
+import { Code2, Trophy, Zap, Star, BookOpen, ArrowUpRight, Lock, Unlock } from 'lucide-react'
 import useEmblaCarousel from 'embla-carousel-react'
 
-const BADGE_CONFIG: Record<string, { color: string; icon: React.ElementType; accent: string }> = {
-  'Open Source':         { color: '#00F5FF', icon: Code2,    accent: '#7B2FFF' },
-  'Industry Simulation': { color: '#FFD166', icon: Trophy,   accent: '#FF6B35' },
-  'Hackathon':           { color: '#FF6B35', icon: Zap,      accent: '#FF2D78' },
-  'DSA':                 { color: '#00FF87', icon: Star,     accent: '#00F5FF' },
-  'Certification':       { color: '#C77DFF', icon: BookOpen, accent: '#7B2FFF' },
+// ── Config ────────────────────────────────────────────────────────────────────
+const BADGE_CONFIG: Record<string, { color: string; icon: React.ElementType; accent: string; label: string }> = {
+  'Open Source':         { color: '#00F5FF', icon: Code2,    accent: '#7B2FFF', label: 'OSS' },
+  'Industry Simulation': { color: '#FFD166', icon: Trophy,   accent: '#FF6B35', label: 'INDUSTRY' },
+  'Hackathon':           { color: '#FF6B35', icon: Zap,      accent: '#FF2D78', label: 'HACKATHON' },
+  'DSA':                 { color: '#00FF87', icon: Star,     accent: '#00F5FF', label: 'DSA' },
+  'Certification':       { color: '#C77DFF', icon: BookOpen, accent: '#7B2FFF', label: 'CERTIFIED' },
 }
 
-// Single source of truth for dimensions
-const CARD_W   = 300   // card + slide width in px
-const CARD_H   = 420   // fixed height — all cards equal
-const HEADER_H = 120   // header band height
+const CARD_W = 320
+const CARD_H = 440
 
+// ── Particle burst ────────────────────────────────────────────────────────────
+function Particles({ active, color }: { active: boolean; color: string }) {
+  const particles = Array.from({ length: 10 }, (_, i) => i)
+  return (
+    <AnimatePresence>
+      {active && particles.map((i) => {
+        const angle  = (i / particles.length) * 360
+        const dist   = 28 + Math.random() * 20
+        const rad    = (angle * Math.PI) / 180
+        const tx     = Math.cos(rad) * dist
+        const ty     = Math.sin(rad) * dist
+        const size   = 2 + Math.random() * 3
+        return (
+          <motion.div
+            key={i}
+            className="absolute rounded-full pointer-events-none z-30"
+            style={{ background: color, width: size, height: size, left: '50%', top: '50%' }}
+            initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+            animate={{ x: tx, y: ty, opacity: 0, scale: 0 }}
+            exit={{}}
+            transition={{ duration: 0.55 + Math.random() * 0.3, ease: 'easeOut' }}
+          />
+        )
+      })}
+    </AnimatePresence>
+  )
+}
+
+// ── Signal ring ───────────────────────────────────────────────────────────────
+function SignalRing({ color, active }: { color: string; active: boolean }) {
+  return (
+    <AnimatePresence>
+      {active && [0, 1, 2].map((i) => (
+        <motion.div
+          key={i}
+          className="absolute inset-0 rounded-[16px] pointer-events-none"
+          style={{ border: `1px solid ${color}` }}
+          initial={{ opacity: 0.6, scale: 1 }}
+          animate={{ opacity: 0, scale: 1.06 + i * 0.04 }}
+          exit={{}}
+          transition={{ duration: 0.9, delay: i * 0.18, ease: 'easeOut' }}
+        />
+      ))}
+    </AnimatePresence>
+  )
+}
+
+// ── Stamp ─────────────────────────────────────────────────────────────────────
+function UnlockedStamp({ active, color }: { active: boolean; color: string }) {
+  return (
+    <AnimatePresence>
+      {active && (
+        <motion.div
+          className="absolute z-20 pointer-events-none"
+          style={{
+            top: 28, right: -10,
+            padding: '3px 14px',
+            border: `2px solid ${color}`,
+            borderRadius: 3,
+            transform: 'rotate(15deg)',
+            transformOrigin: 'center',
+            background: `${color}10`,
+            backdropFilter: 'blur(4px)',
+          }}
+          initial={{ opacity: 0, scale: 0.6, rotate: 5 }}
+          animate={{ opacity: 1, scale: 1, rotate: 15 }}
+          exit={{ opacity: 0, scale: 0.6 }}
+          transition={{ type: 'spring', stiffness: 320, damping: 22 }}
+        >
+          <span style={{
+            color,
+            fontSize: 9,
+            fontWeight: 900,
+            letterSpacing: '0.25em',
+            fontFamily: 'var(--font-jetbrains)',
+          }}>
+            UNLOCKED
+          </span>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
+
+// ── Achievement Card ──────────────────────────────────────────────────────────
 function AchievementCard({
   achievement,
   index,
@@ -29,21 +113,38 @@ function AchievementCard({
   index: number
   inView: boolean
 }) {
-  const [hovered, setHovered] = useState(false)
-  const cfg   = BADGE_CONFIG[achievement.badge] ?? { color: 'var(--accent)', icon: Star, accent: '#7B2FFF' }
+  const [hovered, setHovered]     = useState(false)
+  const [burst, setBurst]         = useState(false)
+  const [signalKey, setSignalKey] = useState(0)
+  const cfg   = BADGE_CONFIG[achievement.badge] ?? { color: 'var(--accent)', icon: Star, accent: '#7B2FFF', label: 'ACHIEVEMENT' }
   const color = cfg.color
   const Icon  = cfg.icon
 
+  const handleEnter = () => {
+    setHovered(true)
+    setBurst(true)
+    setSignalKey(k => k + 1)
+    setTimeout(() => setBurst(false), 700)
+  }
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 36, filter: 'blur(6px)' }}
+      initial={{ opacity: 0, y: 48, filter: 'blur(8px)' }}
       animate={inView ? { opacity: 1, y: 0, filter: 'blur(0px)' } : {}}
-      transition={{ duration: 0.55, delay: index * 0.09, ease: [0.22, 1, 0.36, 1] }}
-      onMouseEnter={() => setHovered(true)}
+      transition={{ duration: 0.65, delay: index * 0.1, ease: [0.16, 1, 0.3, 1] }}
+      onMouseEnter={handleEnter}
       onMouseLeave={() => setHovered(false)}
-      style={{ width: CARD_W, flexShrink: 0, userSelect: 'none' }}
+      style={{ width: CARD_W, flexShrink: 0, userSelect: 'none', position: 'relative', marginTop: 10}}
     >
-      <div
+      {/* Signal rings — outside card */}
+      <div className="absolute inset-0 pointer-events-none" key={signalKey}>
+        <SignalRing color={color} active={hovered} />
+      </div>
+
+      {/* Unlocked stamp */}
+      <UnlockedStamp active={hovered} color={color} />
+
+      <motion.div
         style={{
           width: CARD_W,
           height: CARD_H,
@@ -51,207 +152,294 @@ function AchievementCard({
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          background: hovered
-            ? `linear-gradient(145deg, ${color}08, rgba(0,0,0,0) 60%)`
-            : 'rgba(255,255,255,0.02)',
-          border: `1px solid ${hovered ? color : 'var(--card-border)'}`,
-          boxShadow: hovered
-            ? `0 0 36px ${color}22, 0 0 70px ${color}08, 0 16px 40px rgba(0,0,0,0.5)`
-            : '0 2px 12px rgba(0,0,0,0.2)',
-          transform: hovered ? 'translateY(-6px)' : 'translateY(0)',
-          transition: 'all 0.3s cubic-bezier(0.22,1,0.36,1)',
+          position: 'relative',
+          background: 'rgba(5,5,8,0.9)',
+          backdropFilter: 'blur(20px)',
         }}
+        animate={{
+          boxShadow: hovered
+            ? `0 0 0 1px ${color}, 0 0 40px ${color}30, 0 24px 60px rgba(0,0,0,0.6)`
+            : `0 0 0 1px rgba(255,255,255,0.07), 0 4px 20px rgba(0,0,0,0.3)`,
+          y: hovered ? -8 : 0,
+        }}
+        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
       >
-        {/* ── Header band ── */}
-        <div
-          style={{
-            height: HEADER_H,
-            flexShrink: 0,
-            position: 'relative',
-            overflow: 'hidden',
-            background: `linear-gradient(135deg, ${color}18 0%, ${cfg.accent}12 50%, transparent 100%)`,
-            borderBottom: `1px solid ${hovered ? color + '28' : 'var(--card-border)'}`,
-            transition: 'border-color 0.3s',
-          }}
-        >
-          {/* Dot mesh */}
+        {/* ── Diagonal slash header ── */}
+        <div style={{ height: 130, flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
+          {/* Base gradient */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: `linear-gradient(135deg, ${color}22 0%, ${cfg.accent}14 60%, transparent 100%)`,
+          }} />
+
+          {/* Diagonal slash cut */}
+          <div style={{
+            position: 'absolute',
+            bottom: -1, left: 0, right: 0,
+            height: 40,
+            background: 'rgba(5,5,8,0.9)',
+            clipPath: 'polygon(0 40px, 100% 0, 100% 40px)',
+          }} />
+
+          {/* Grid dots */}
           <div style={{
             position: 'absolute', inset: 0, pointerEvents: 'none',
-            backgroundImage: `radial-gradient(${color}18 1px, transparent 1px)`,
-            backgroundSize: '18px 18px',
-            opacity: hovered ? 0.9 : 0.4,
+            backgroundImage: `radial-gradient(${color}20 1px, transparent 1px)`,
+            backgroundSize: '16px 16px',
+            opacity: hovered ? 1 : 0.5,
             transition: 'opacity 0.4s',
           }} />
 
-          {/* Watermark icon */}
+          {/* Watermark number */}
           <div style={{
-            position: 'absolute', right: -8, bottom: -8, pointerEvents: 'none',
-            opacity: hovered ? 0.1 : 0.05, transition: 'opacity 0.4s',
-          }}>
-            <Icon size={80} style={{ color }} />
-          </div>
-
-          {/* Index number */}
-          <div style={{
-            position: 'absolute', top: 10, right: 12,
-            fontSize: '2.4rem', lineHeight: 1, fontWeight: 900, pointerEvents: 'none',
-            color, opacity: hovered ? 0.14 : 0.05,
+            position: 'absolute', right: 10, top: 2,
+            fontSize: '5rem', fontWeight: 900, lineHeight: 1,
+            color, opacity: hovered ? 0.08 : 0.04,
             fontFamily: 'var(--font-space-grotesk)',
             transition: 'opacity 0.3s',
+            pointerEvents: 'none',
           }}>
             {String(index + 1).padStart(2, '0')}
           </div>
 
-          {/* Badge pill — top left */}
+          {/* Top-left: category pill */}
           <div style={{
             position: 'absolute', top: 14, left: 14,
-            display: 'flex', alignItems: 'center', gap: 6,
+            display: 'flex', alignItems: 'center', gap: 5,
             padding: '4px 10px', borderRadius: 999,
-            background: `${color}18`, border: `1px solid ${color}35`,
-            backdropFilter: 'blur(6px)',
+            background: `${color}15`,
+            border: `1px solid ${color}40`,
           }}>
-            <motion.span
-              style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }}
-              animate={{ opacity: [1, 0.3, 1] }}
-              transition={{ duration: 1.8, repeat: Infinity }}
+            <motion.div
+              style={{ width: 5, height: 5, borderRadius: '50%', background: color, flexShrink: 0 }}
+              animate={{ opacity: [1, 0.3, 1], scale: [1, 1.4, 1] }}
+              transition={{ duration: 1.6, repeat: Infinity }}
             />
             <span style={{
-              color, fontFamily: 'var(--font-jetbrains)', fontSize: 10,
-              fontWeight: 700, letterSpacing: '0.05em', whiteSpace: 'nowrap',
+              color, fontSize: 9, fontWeight: 700,
+              letterSpacing: '0.2em',
+              fontFamily: 'var(--font-jetbrains)',
             }}>
-              {achievement.badge}
+              {cfg.label}
             </span>
           </div>
 
-          {/* Icon box — bottom left */}
-          <motion.div
-            style={{
-              position: 'absolute', bottom: 14, left: 14,
-              width: 40, height: 40, borderRadius: 12,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: `${color}15`, border: `1px solid ${color}30`,
-              boxShadow: hovered ? `0 0 18px ${color}40` : 'none',
-              transition: 'all 0.3s ease',
-            }}
-            animate={hovered ? { scale: 1.08, rotate: [0, -4, 4, 0] } : { scale: 1, rotate: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            <Icon size={18} style={{ color }} />
-          </motion.div>
+          {/* Bottom-left: icon with particles */}
+          <div style={{
+            position: 'absolute', bottom: 20, left: 16,
+            width: 44, height: 44,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <motion.div
+              style={{
+                width: 44, height: 44, borderRadius: 12,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: `${color}18`,
+                border: `1px solid ${color}40`,
+                position: 'relative',
+              }}
+              animate={hovered ? {
+                boxShadow: `0 0 24px ${color}60`,
+                borderColor: color,
+              } : {
+                boxShadow: 'none',
+              }}
+              transition={{ duration: 0.3 }}
+            >
+              <Particles active={burst} color={color} />
+              <motion.div
+                animate={hovered ? { rotate: [0, -8, 8, 0], scale: 1.15 } : { rotate: 0, scale: 1 }}
+                transition={{ duration: 0.5 }}
+              >
+                <Icon size={20} style={{ color }} />
+              </motion.div>
+            </motion.div>
+          </div>
 
-          {/* Date — bottom right */}
+          {/* Bottom-right: lock → unlock */}
+          <div style={{ position: 'absolute', bottom: 22, right: 16 }}>
+            <AnimatePresence mode="wait">
+              {hovered ? (
+                <motion.div key="unlock"
+                  initial={{ scale: 0, rotate: -20, opacity: 0 }}
+                  animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                  exit={{ scale: 0, opacity: 0 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 20 }}>
+                  <Unlock size={14} style={{ color }} />
+                </motion.div>
+              ) : (
+                <motion.div key="lock"
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 0.35 }}
+                  exit={{ scale: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}>
+                  <Lock size={14} style={{ color: 'var(--muted-foreground)' }} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Date — top right */}
           <span style={{
-            position: 'absolute', bottom: 16, right: 14,
+            position: 'absolute', top: 16, right: 16,
             color: 'var(--muted-foreground)', fontFamily: 'var(--font-jetbrains)',
-            fontSize: 10, fontWeight: 500,
+            fontSize: 9, opacity: 0.6,
           }}>
             {achievement.date}
           </span>
         </div>
 
-        {/* ── Body — fills remaining height ── */}
+        {/* ── Body ── */}
         <div style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          padding: '16px 16px 14px',
-          // Remaining height = CARD_H - HEADER_H - 2px border
-          minHeight: 0, // allow flex children to shrink
-          overflow: 'hidden',
+          flex: 1, display: 'flex', flexDirection: 'column',
+          padding: '12px 18px 16px',
+          minHeight: 0,
         }}>
-          {/* Title */}
-          <h3 style={{
-            color: hovered ? color : 'var(--foreground)',
-            fontFamily: 'var(--font-space-grotesk)',
-            fontSize: '0.85rem',
-            fontWeight: 900,
-            lineHeight: 1.3,
-            marginBottom: 8,
-            transition: 'color 0.25s ease',
-            // Allow up to 2 lines
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-          }}>
-            {achievement.title}
-          </h3>
-
-          {/* Org */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexShrink: 0 }}>
-            <div style={{ width: 12, height: 2, borderRadius: 2, background: color, flexShrink: 0 }} />
-            <p style={{
-              color, fontFamily: 'var(--font-jetbrains)',
-              fontSize: 11, fontWeight: 700, opacity: 0.85,
+          {/* Organization */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+            <motion.div
+              style={{ height: 2, borderRadius: 2, background: color, flexShrink: 0 }}
+              animate={{ width: hovered ? 16 : 8 }}
+              transition={{ duration: 0.3 }}
+            />
+            <span style={{
+              color, fontSize: 10, fontWeight: 700,
+              fontFamily: 'var(--font-jetbrains)',
+              letterSpacing: '0.05em',
               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
             }}>
               {achievement.organization}
-            </p>
+            </span>
           </div>
 
-          {/* Description — takes all remaining space, 4 lines max */}
+          {/* Title */}
+          <motion.h3
+            style={{
+              fontFamily: 'var(--font-space-grotesk)',
+              fontSize: '0.9rem',
+              fontWeight: 900,
+              lineHeight: 1.3,
+              marginBottom: 10,
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+            }}
+            animate={{ color: hovered ? color : 'var(--foreground)' }}
+            transition={{ duration: 0.25 }}
+          >
+            {achievement.title}
+          </motion.h3>
+
+          {/* Divider with pulse */}
+          <motion.div
+            style={{ height: 1, marginBottom: 10, borderRadius: 1 }}
+            animate={{
+              background: hovered
+                ? `linear-gradient(90deg, ${color}, ${cfg.accent})`
+                : 'rgba(255,255,255,0.06)',
+            }}
+            transition={{ duration: 0.3 }}
+          />
+
+          {/* Description */}
           <p style={{
             color: 'var(--muted-foreground)',
-            fontSize: '0.75rem',
-            lineHeight: 1.55,
+            fontSize: '0.72rem',
+            lineHeight: 1.6,
             flex: 1,
             overflow: 'hidden',
             display: '-webkit-box',
             WebkitLineClamp: 4,
             WebkitBoxOrient: 'vertical',
-            marginBottom: 10,
+            marginBottom: 12,
           }}>
             {achievement.description}
           </p>
 
-          {/* Footer — always at bottom */}
+          {/* Footer */}
           <div style={{
-            borderTop: `1px solid ${hovered ? color + '25' : 'var(--card-border)'}`,
+            borderTop: '1px solid rgba(255,255,255,0.05)',
             paddingTop: 10,
-            flexShrink: 0,
-            transition: 'border-color 0.3s',
-            minHeight: 36,
             display: 'flex',
             alignItems: 'center',
+            justifyContent: 'space-between',
           }}>
+            {/* Terminal path */}
+            <span style={{
+              fontSize: 9, fontFamily: 'var(--font-jetbrains)',
+              color: 'var(--muted-foreground)', opacity: 0.4,
+            }}>
+              ~/achievements/{String(index + 1).padStart(2, '0')}
+            </span>
+
             {achievement.url ? (
               <a
                 href={achievement.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 onPointerDown={(e) => e.stopPropagation()}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 5,
-                  fontSize: 11, fontWeight: 700,
-                  color: hovered ? color : 'var(--muted-foreground)',
-                  fontFamily: 'var(--font-jetbrains)',
-                  transition: 'color 0.2s',
-                  textDecoration: 'none',
-                }}
+                style={{ textDecoration: 'none' }}
               >
-                View
-                <motion.span
-                  animate={hovered ? { x: [0, 3, 0] } : { x: 0 }}
-                  transition={{ duration: 0.8, repeat: hovered ? Infinity : 0 }}
+                <motion.div
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    padding: '4px 10px', borderRadius: 999,
+                    fontSize: 10, fontWeight: 700,
+                    fontFamily: 'var(--font-jetbrains)',
+                    border: '1px solid',
+                    cursor: 'pointer',
+                  }}
+                  animate={hovered ? {
+                    background: `${color}18`,
+                    borderColor: `${color}50`,
+                    color,
+                  } : {
+                    background: 'rgba(255,255,255,0.04)',
+                    borderColor: 'rgba(255,255,255,0.08)',
+                    color: 'var(--muted-foreground)',
+                  }}
+                  transition={{ duration: 0.25 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.96 }}
                 >
-                  <ArrowRight size={11} />
-                </motion.span>
+                  View
+                  <ArrowUpRight size={10} />
+                </motion.div>
               </a>
             ) : (
-              <span style={{
-                fontSize: 11, color: 'var(--muted-foreground)',
-                fontFamily: 'var(--font-jetbrains)', opacity: 0.4,
-              }}>
-                ∙ ∙ ∙
+              <span style={{ fontSize: 10, color: 'var(--muted-foreground)', opacity: 0.3, fontFamily: 'var(--font-jetbrains)' }}>
+                classified
               </span>
             )}
           </div>
         </div>
-      </div>
+      </motion.div>
     </motion.div>
   )
 }
 
+// ── Counter ticker ────────────────────────────────────────────────────────────
+function Ticker({ target, inView }: { target: number; inView: boolean }) {
+  const [val, setVal] = useState(0)
+  useEffect(() => {
+    if (!inView) return
+    let cur = 0
+    const id = setInterval(() => {
+      cur += 1
+      setVal(cur)
+      if (cur >= target) clearInterval(id)
+    }, 80)
+    return () => clearInterval(id)
+  }, [inView, target])
+  return (
+    <span style={{ color: 'var(--accent)', fontFamily: 'var(--font-jetbrains)', fontWeight: 900 }}>
+      {String(val).padStart(2, '0')}
+    </span>
+  )
+}
+
+// ── Section ───────────────────────────────────────────────────────────────────
 export function AchievementsSection() {
   const { achievements } = portfolioData
   const ref     = useRef<HTMLDivElement>(null)
@@ -264,7 +452,6 @@ export function AchievementsSection() {
     dragFree: true,
     align: 'start',
     containScroll: 'trimSnaps',
-    watchDrag: () => true,
   })
 
   const onPointerDown = useCallback(() => setIsDragging(true),  [])
@@ -277,68 +464,120 @@ export function AchievementsSection() {
       className="relative py-24 overflow-hidden"
       style={{ background: 'var(--background)' }}
     >
+      {/* ── Background: rotating conic radar ── */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <motion.div
+          className="absolute"
+          style={{
+            width: 900, height: 900,
+            top: '50%', left: '50%',
+            marginTop: -450, marginLeft: -450,
+            background: 'conic-gradient(from 0deg, transparent 0deg, rgba(0,245,255,0.03) 30deg, transparent 60deg)',
+            borderRadius: '50%',
+          }}
+          animate={{ rotate: 360 }}
+          transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
+        />
+        {/* Concentric rings */}
+        {[200, 350, 500].map((r) => (
+          <div key={r} style={{
+            position: 'absolute',
+            width: r * 2, height: r * 2,
+            top: '50%', left: '50%',
+            marginTop: -r, marginLeft: -r,
+            borderRadius: '50%',
+            border: '1px solid rgba(0,245,255,0.03)',
+          }} />
+        ))}
+      </div>
+
+      {/* Glow accents */}
       <div className="absolute inset-0 pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse 60% 50% at 50% 0%, var(--glow-secondary) 0%, transparent 70%)', opacity: 0.1 }} />
+        style={{ background: 'radial-gradient(ellipse 60% 50% at 50% 0%, var(--glow-secondary) 0%, transparent 70%)', opacity: 0.08 }} />
       <div className="absolute bottom-0 left-1/4 w-96 h-96 pointer-events-none"
         style={{ background: 'radial-gradient(circle, var(--glow) 0%, transparent 70%)', filter: 'blur(80px)', opacity: 0.06 }} />
 
+      {/* Watermark */}
+      <div className="absolute left-8 top-1/3 pointer-events-none select-none hidden xl:block">
+        <span style={{
+          fontSize: 200, fontWeight: 900, lineHeight: 1,
+          color: 'transparent',
+          WebkitTextStroke: '1px rgba(0,245,255,0.03)',
+          fontFamily: 'var(--font-space-grotesk)',
+        }}>
+          ACH
+        </span>
+      </div>
+
       <div className="relative z-10">
 
-        {/* Heading */}
+        {/* ── Heading ── */}
         <div className="section-container">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 24 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.6 }}
-            className="mb-12"
+            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            className="mb-14"
           >
-            <p className="text-xs tracking-[0.35em] uppercase mb-3"
-              style={{ color: 'var(--accent)', fontFamily: 'var(--font-jetbrains)' }}>
-              // recognition &amp; milestones
-            </p>
-            <h2 className="text-5xl sm:text-6xl font-black tracking-tight"
-              style={{ fontFamily: 'var(--font-space-grotesk)', color: 'var(--foreground)' }}>
-              {heading}
-            </h2>
-            <div className="section-heading-line mt-3 w-24" />
+            <div className="flex items-center gap-3 mb-3">
+              <motion.div className="h-px w-8" style={{ background: 'var(--accent)' }}
+                initial={{ scaleX: 0 }} animate={inView ? { scaleX: 1 } : {}}
+                transition={{ duration: 0.4, delay: 0.2 }} />
+              <p className="text-xs tracking-[0.35em] uppercase"
+                style={{ color: 'var(--accent)', fontFamily: 'var(--font-jetbrains)' }}>
+                // recognition &amp; milestones
+              </p>
+            </div>
+
+            <div className="flex items-end gap-5 flex-wrap">
+              <h2 className="text-5xl sm:text-7xl font-black tracking-tight"
+                style={{ fontFamily: 'var(--font-space-grotesk)', color: 'var(--foreground)', letterSpacing: '0.04em' }}>
+                {heading}
+              </h2>
+              {/* Live ticker */}
+              <div className="flex items-center gap-2 mb-2 pb-1"
+                style={{ borderBottom: '1px solid var(--card-border)' }}>
+                <span style={{ fontSize: 11, color: 'var(--muted-foreground)', fontFamily: 'var(--font-jetbrains)' }}>
+                  missions_unlocked
+                </span>
+                <span style={{ fontSize: 22, fontFamily: 'var(--font-jetbrains)', fontWeight: 900 }}>
+                  [<Ticker target={achievements.length} inView={inView} />]
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 mt-3">
+              <div className="section-heading-line w-24" />
+              <span className="text-xs"
+                style={{ color: 'var(--muted-foreground)', fontFamily: 'var(--font-jetbrains)', opacity: 0.4 }}>
+                drag to scroll
+              </span>
+            </div>
           </motion.div>
         </div>
 
-        {/* Carousel */}
+        {/* ── Carousel ── */}
         <div className="relative">
           {/* Edge fades */}
-          <div className="absolute left-0 top-0 bottom-0 w-16 z-10 pointer-events-none"
+          <div className="absolute left-0 top-0 bottom-0 w-20 z-10 pointer-events-none"
             style={{ background: 'linear-gradient(90deg, var(--background) 0%, transparent 100%)' }} />
-          <div className="absolute right-0 top-0 bottom-0 w-16 z-10 pointer-events-none"
+          <div className="absolute right-0 top-0 bottom-0 w-20 z-10 pointer-events-none"
             style={{ background: 'linear-gradient(270deg, var(--background) 0%, transparent 100%)' }} />
 
-          {/* Embla viewport */}
           <div
             ref={emblaRef}
-            style={{
-              overflow: 'hidden',
-              cursor: isDragging ? 'grabbing' : 'grab',
-              touchAction: 'pan-y',
-            }}
+            style={{ overflow: 'hidden', cursor: isDragging ? 'grabbing' : 'grab', touchAction: 'pan-y'}}
             onPointerDown={onPointerDown}
             onPointerUp={onPointerUp}
             onPointerLeave={onPointerUp}
           >
-            {/* Embla container — NO gap, NO padding, pure flex */}
             <div style={{
               display: 'flex',
               alignItems: 'flex-start',
-              paddingTop: 6,
-              paddingBottom: 16,
+              paddingTop: 8,
+              paddingBottom: 24,
             }}>
               {achievements.map((achievement, i) => (
-                /*
-                  Slide wrapper:
-                  - flexShrink: 0  — mandatory for Embla
-                  - width: CARD_W  — slide width = card width
-                  - paddingLeft    — creates gap between slides (NOT counted in width because boxSizing content-box)
-                  - boxSizing: content-box — ensures paddingLeft is outside the measured width
-                */
                 <div
                   key={`${achievement.title}-${i}`}
                   style={{
@@ -350,10 +589,9 @@ export function AchievementsSection() {
                       : '20px',
                   }}
                 >
-                  <AchievementCard achievement={achievement} index={i} inView={inView} />
+                  <AchievementCard achievement={achievement} index={i} inView={inView}/>
                 </div>
               ))}
-              {/* Trailing spacer mirrors the leading padding */}
               <div style={{
                 flexShrink: 0,
                 width: 'max(1.5rem, calc((100vw - 1280px) / 2 + 1.5rem))',
@@ -362,16 +600,23 @@ export function AchievementsSection() {
           </div>
         </div>
 
-        {/* Drag hint */}
-        <div className="section-container mt-5">
-          <motion.p
-            className="text-xs flex items-center gap-2"
-            style={{ color: 'var(--muted-foreground)', fontFamily: 'var(--font-jetbrains)' }}
-            animate={{ x: [0, 4, 0, -4, 0] }}
-            transition={{ duration: 3, repeat: Infinity, repeatDelay: 2 }}
+        {/* ── Drag hint ── */}
+        <div className="section-container mt-4">
+          <motion.div
+            className="flex items-center gap-3"
+            animate={{ x: [0, 5, 0, -5, 0] }}
+            transition={{ duration: 3.5, repeat: Infinity, repeatDelay: 1.5 }}
           >
-            <span>←</span><span>Drag to explore</span><span>→</span>
-          </motion.p>
+            <span style={{ fontSize: 10, color: 'var(--muted-foreground)', fontFamily: 'var(--font-jetbrains)', opacity: 0.5 }}>
+              ←
+            </span>
+            <span style={{ fontSize: 10, color: 'var(--muted-foreground)', fontFamily: 'var(--font-jetbrains)', opacity: 0.5, letterSpacing: '0.15em' }}>
+              DRAG TO EXPLORE
+            </span>
+            <span style={{ fontSize: 10, color: 'var(--muted-foreground)', fontFamily: 'var(--font-jetbrains)', opacity: 0.5 }}>
+              →
+            </span>
+          </motion.div>
         </div>
       </div>
     </section>

@@ -42,12 +42,26 @@ export function VisitorCounter() {
   const [hovered, setHovered] = useState(false)
 
   useEffect(() => {
-    // POST to increment, then set stats from response
-    fetch('/api/visitors', { method: 'POST' })
+  // Only count once per browser session — not on every page load/hot reload
+  const counted = sessionStorage.getItem('vc')
+  if (counted) {
+    // Already counted this session — just GET the current stats
+    fetch('/api/visitors')
       .then((r) => r.json())
       .then((data: Stats) => { setStats(data); setLoaded(true) })
       .catch(() => setLoaded(true))
-  }, [])
+  } else {
+    // First visit this session — POST to increment
+    fetch('/api/visitors', { method: 'POST' })
+      .then((r) => r.json())
+      .then((data: Stats) => {
+        sessionStorage.setItem('vc', '1')
+        setStats(data)
+        setLoaded(true)
+      })
+      .catch(() => setLoaded(true))
+  }
+}, [])
 
   return (
     <AnimatePresence>
@@ -58,7 +72,7 @@ export function VisitorCounter() {
           transition={{ duration: 0.5, delay: 0.3 }}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
-          className="flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-300"
+          className="flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-300 mr-50"
           style={{
             background: hovered ? 'rgba(0,245,255,0.05)' : 'rgba(255,255,255,0.02)',
             border: `1px solid ${hovered ? 'rgba(0,245,255,0.2)' : 'var(--card-border)'}`,

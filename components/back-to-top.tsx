@@ -28,11 +28,12 @@ export function BackToTop() {
           title="Back to top"
           className="fixed bottom-24 right-6 z-50 w-10 h-10 flex items-center justify-center rounded-xl"
           style={{
-            background: 'rgba(255,255,255,0.04)',
+            background: 'rgba(255,255,255,0.04), var(--muted)',
             border: '1px solid var(--card-border)',
-            color: 'var(--muted-foreground)',
+            color: 'var(--foreground)',
             backdropFilter: 'blur(8px)',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+            boxShadow: `0 4px 24px rgba(0,0,0,0.5), 0 0 20px var(--glow)`,
+            fontFamily: 'var(--font-space-grotesk)',
           }}
           initial={{ opacity: 0, y: 16, scale: 0.85 }}
           animate={{ opacity: 1, y: 0,  scale: 1    }}

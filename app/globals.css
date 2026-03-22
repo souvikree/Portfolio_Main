@@ -9,6 +9,15 @@
    4 Switchable Themes via data-theme attribute
    ============================================ */
 
+/* GPU compositing hints — zero visual change */
+section,
+.glass-card {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: auto;
+}
+
 /* ---- THEME 1: CYBER NOIR (DEFAULT) ---- */
 :root,
 [data-theme="cyber-noir"] {

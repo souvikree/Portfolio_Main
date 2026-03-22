@@ -143,7 +143,7 @@ export function FloatingThemeSwitcher() {
       {/* Pill button */}
       <motion.button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2.5 px-4 py-3 rounded-2xl text-sm font-semibold shadow-2xl"
+        className="flex items-center gap-2.5 px-4 py-3 rounded-2xl text-sm font-semibold shadow-2xl mb-4"
         style={{
           background: 'var(--muted)',
           color: 'var(--foreground)',

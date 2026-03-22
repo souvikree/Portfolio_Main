@@ -143,7 +143,7 @@ export function Navbar() {
                   style={{ background: 'var(--background)' }}
                 >
                   <Image
-                    src="/images/souvik-nobg.png"
+                    src="/images/souvik-nobg.webp"
                     alt="Souvik Ghosh"
                     width={36} height={36}
                     className="w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-110"
@@ -297,7 +297,7 @@ export function Navbar() {
             <div className="flex items-center justify-between px-6 pt-6 pb-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl overflow-hidden border-2" style={{ borderColor: 'var(--accent)', boxShadow: '0 0 16px var(--glow)' }}>
-                  <Image src="/images/souvik-nobg.png" alt="Souvik Ghosh" width={36} height={36} className="w-full h-full object-cover object-top" />
+                  <Image src="/images/souvik-nobg.webp" alt="Souvik Ghosh" width={36} height={36} className="w-full h-full object-cover object-top" />
                 </div>
                 <div className="flex flex-col leading-none">
                   <span className="text-sm font-black" style={{ color: 'var(--foreground)', fontFamily: 'var(--font-space-grotesk)' }}>Souvik Ghosh</span>

@@ -1,10 +1,11 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { Navbar }          from '@/components/navbar'
-import { ScrollProgress }  from '@/components/scroll-progress'
-import { PrintButton }     from '@/components/print-button'
-import { BackToTop }       from '@/components/back-to-top'
+import { Navbar }             from '@/components/navbar'
+import { ScrollProgress }     from '@/components/scroll-progress'
+import { BackToTop }          from '@/components/back-to-top'
+import { CursorSpotlight }    from '@/components/cursor-spotlight'
+import { FEATURES }           from '@/lib/feature-flags'
 
 const LoadingScreen = dynamic(
   () => import('@/components/loading-screen').then((m) => m.LoadingScreen),
@@ -19,6 +20,7 @@ import { ExperienceSection }   from '@/components/sections/experience'
 import { ProjectsSection }     from '@/components/sections/projects'
 import { AchievementsSection } from '@/components/sections/achievements'
 import { EducationSection }    from '@/components/sections/education'
+import { TestimonialsSection } from '@/components/sections/testimonials'
 import { ContactSection }      from '@/components/sections/contact'
 import { Footer }              from '@/components/footer'
 import { FloatingThemeSwitcher } from '@/components/theme-switcher'
@@ -28,6 +30,7 @@ export default function HomePage() {
     <>
       <LoadingScreen />
       <ScrollProgress />
+      <CursorSpotlight />
       <Navbar />
 
       <main>
@@ -44,16 +47,22 @@ export default function HomePage() {
         <AchievementsSection />
         <SectionDivider />
         <EducationSection />
+
+        {/* Testimonials — gated by feature flag */}
+        {FEATURES.testimonials && (
+          <>
+            <SectionDivider />
+            <TestimonialsSection />
+          </>
+        )}
+
         <SectionDivider />
         <ContactSection />
       </main>
 
       <Footer />
-
-      {/* Floating UI — all in bottom-right stack */}
       <FloatingThemeSwitcher />
       <BackToTop />
-      {/* <PrintButton /> */}
     </>
   )
 }
